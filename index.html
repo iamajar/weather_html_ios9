@@ -3,323 +3,547 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>iPad 天气看板</title>
+    <title>北京天气看板</title>
     <style>
-        /* 基础重置与 iOS 9 安全字体 */
-        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        
+        :root {
+            /* 统一设计：柔和的浅灰蓝渐变，不刺眼 */
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            --card-bg: rgba(30, 41, 59, 0.85);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            --divider: rgba(255, 255, 255, 0.08);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
         body {
-            font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
-            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-primary);
             min-height: 100vh;
-            padding: 30px;
-            line-height: 1.3;
-            background-color: #1E3C72;
-            -webkit-transition: background 1.5s ease;
-            transition: background 1.5s ease;
-            overflow-x: hidden;
+            padding: 20px;
+            transition: background 0.5s ease, color 0.5s ease;
+            -webkit-font-smoothing: antialiased;
         }
 
-        /* 动态背景类 */
-        .bg-clear { background: linear-gradient(160deg, #2980B9 0%, #6DD5FA 50%, #FFFFFF 100%); }
-        .bg-cloudy { background: linear-gradient(160deg, #4B6CB7 0%, #182848 100%); }
-        .bg-rainy { background: linear-gradient(160deg, #373B44 0%, #4286f4 100%); }
-        .bg-snowy { background: linear-gradient(160deg, #8e9eab 0%, #eef2f3 100%); color: #333; }
-        .bg-night { background: linear-gradient(160deg, #0f2027 0%, #203a43 50%, #2c5364 100%); }
-        .bg-default { background: linear-gradient(160deg, #1E3C72 0%, #2A5298 100%); }
-
-        .container { max-width: 1024px; margin: 0 auto; }
-
-        /* 状态提示 */
-        .status-msg { 
-            text-align: center; padding: 100px 20px; 
-            font-size: 24px; opacity: 0.8; font-weight: 300; 
-        }
-        .hidden { display: none !important; }
-
-        /* 内容区域淡入动画 */
-        #weatherContent {
-            -webkit-animation: fadeIn 0.8s ease-out;
-            animation: fadeIn 0.8s ease-out;
-        }
-        @-webkit-keyframes fadeIn { from { opacity: 0; -webkit-transform: translateY(10px); } to { opacity: 1; -webkit-transform: translateY(0); } }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* 当前天气大卡片 */
-        .current-card {
-            text-align: center;
-            padding: 40px 20px 30px;
-            background: rgba(255,255,255,0.15);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 24px;
-            margin-bottom: 30px;
-            -webkit-backdrop-filter: blur(20px);
-            backdrop-filter: blur(20px);
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-        }
-        .loc-name { font-size: 28px; font-weight: 500; letter-spacing: 1px; margin-bottom: 10px; }
-        .temp-huge { 
-            font-size: 140px; 
-            font-weight: 200; 
-            letter-spacing: -6px; 
-            line-height: 1; 
-            margin: 10px 0;
-        }
-        .temp-huge sup { font-size: 60px; font-weight: 300; vertical-align: top; margin-left: 5px; }
-        .weather-desc { font-size: 32px; font-weight: 400; opacity: 0.95; margin-bottom: 15px; }
-        .update-time { font-size: 16px; opacity: 0.6; font-weight: 300; }
-
-        /* 区块标题 */
-        .section-title { 
-            font-size: 18px; 
-            font-weight: 600; 
-            opacity: 0.7; 
-            margin: 25px 10px 15px; 
-            text-transform: uppercase; 
-            letter-spacing: 2px; 
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
         }
 
-        /* 小时预报横向滚动 */
-        .hourly-scroll {
+        header {
             display: -webkit-box;
             display: -webkit-flex;
+            display: -ms-flexbox;
             display: flex;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            padding-bottom: 15px;
-            margin-bottom: 10px;
+            -webkit-box-pack: justify;
+            -webkit-justify-content: space-between;
+            -ms-flex-pack: justify;
+            justify-content: space-between;
+            -webkit-box-align: center;
+            -webkit-align-items: center;
+            -ms-flex-align: center;
+            align-items: center;
+            margin-bottom: 24px;
+            padding: 0 4px;
         }
-        .hourly-scroll::-webkit-scrollbar { display: none; }
-        
-        .hour-card {
-            -webkit-box-flex: 0;
-            -webkit-flex: 0 0 auto;
-            flex: 0 0 auto;
-            width: 110px;
-            text-align: center;
-            padding: 20px 10px;
-            background: rgba(255,255,255,0.15);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 20px;
-            margin-right: 15px;
-            -webkit-backdrop-filter: blur(10px);
-            backdrop-filter: blur(10px);
-        }
-        .h-time { font-size: 20px; font-weight: 500; opacity: 0.8; }
-        .h-icon { font-size: 42px; margin: 12px 0; line-height: 1; }
-        .h-temp { font-size: 32px; font-weight: 500; }
 
-        /* 每日预报列表 */
-        .daily-list { list-style: none; }
-        .daily-card {
+        .title {
+            font-size: 32px; /* iPad Mini 优化 */
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .update-info {
+            font-size: 18px; /* iPad Mini 优化 */
+            color: var(--text-secondary);
             display: -webkit-box;
             display: -webkit-flex;
+            display: -ms-flexbox;
             display: flex;
             -webkit-box-align: center;
             -webkit-align-items: center;
+            -ms-flex-align: center;
             align-items: center;
-            padding: 20px 25px;
-            background: rgba(255,255,255,0.15);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 20px;
-            margin-bottom: 12px;
-            font-size: 24px;
-            -webkit-backdrop-filter: blur(10px);
-            backdrop-filter: blur(10px);
+            gap: 8px;
         }
-        .d-day { -webkit-box-flex: 1; -webkit-flex: 1; flex: 1; font-weight: 600; font-size: 26px; }
-        .d-icon { width: 60px; text-align: center; font-size: 38px; }
-        .d-desc { -webkit-box-flex: 2; -webkit-flex: 2; flex: 2; font-size: 22px; opacity: 0.8; padding-left: 10px;}
-        .d-temp-range { width: 140px; text-align: right; font-weight: 500; font-size: 28px; }
-        .d-temp-low { opacity: 0.5; margin-left: 12px; font-weight: 400; }
 
-        /* 横屏适配 (iPad mini 横屏时优化布局) */
-        @media screen and (orientation: landscape) {
-            body { padding: 20px 40px; }
-            .current-card { padding: 20px; }
-            .temp-huge { font-size: 110px; }
-            .weather-desc { font-size: 28px; }
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--card-border);
+            border-top-color: var(--text-primary);
+            border-radius: 50%;
+            -webkit-animation: spin 1s linear infinite;
+            animation: spin 1s linear infinite;
+        }
+
+        @-webkit-keyframes spin { to { -webkit-transform: rotate(360deg); transform: rotate(360deg); } }
+        @keyframes spin { to { -webkit-transform: rotate(360deg); transform: rotate(360deg); } }
+
+        .card {
+            background: var(--card-bg);
+            -webkit-backdrop-filter: blur(16px);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+            transition: background 0.5s ease, border 0.5s ease;
+        }
+
+        .card-title {
+            font-size: 24px; /* iPad Mini 优化 */
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text-secondary);
+        }
+
+        /* 当前天气 */
+        .current-weather {
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: -ms-flexbox;
+            display: flex;
+            -webkit-box-align: center;
+            -webkit-align-items: center;
+            -ms-flex-align: center;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .current-icon {
+            font-size: 300px; /* iPad Mini 优化 */
+            line-height: 1;
+        }
+
+        .current-details {
+            -webkit-box-flex: 1;
+            -webkit-flex: 1;
+            -ms-flex: 1;
+            flex: 1;
+        }
+
+        .current-temp {
+            font-size: 72px; /* iPad Mini 优化 */
+            font-weight: 300;
+            line-height: 1.1;
+        }
+
+        .current-desc {
+            font-size: 28px; /* iPad Mini 优化 */
+            color: var(--text-secondary);
+            margin-top: 4px;
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: -ms-flexbox;
+            display: flex;
+            -webkit-box-align: center;
+            -webkit-align-items: center;
+            -ms-flex-align: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .current-metrics {
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: -ms-flexbox;
+            display: flex;
+            gap: 24px;
+            margin-top: 12px;
+            font-size: 20px; /* iPad Mini 优化 */
+            color: var(--text-secondary);
+        }
+
+        /* 未来24小时 */
+        .hourly-scroll {
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: -ms-flexbox;
+            display: flex;
+            overflow-x: auto;
+            gap: 16px;
+            padding-bottom: 8px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .hourly-scroll::-webkit-scrollbar { height: 4px; }
+        .hourly-scroll::-webkit-scrollbar-thumb { background: var(--text-secondary); border-radius: 2px; }
+
+        .hour-item {
+            -webkit-box-flex: 0;
+            -webkit-flex: 0 0 auto;
+            -ms-flex: 0 0 auto;
+            flex: 0 0 auto;
+            text-align: center;
+            min-width: 80px; /* iPad Mini 优化 */
+        }
+
+        .hour-time {
+            font-size: 18px; /* iPad Mini 优化 */
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .hour-icon {
+            font-size: 36px; /* iPad Mini 优化 */
+            margin-bottom: 8px;
+        }
+
+        .hour-desc {
+            font-size: 14px; /* iPad Mini 优化 */
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .hour-temp {
+            font-size: 20px; /* iPad Mini 优化 */
+            font-weight: 600;
+        }
+
+        /* 未来7天 */
+        .daily-list {
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: -ms-flexbox;
+            display: flex;
+            -webkit-box-orient: vertical;
+            -webkit-box-direction: normal;
+            -webkit-flex-direction: column;
+            -ms-flex-direction: column;
+            flex-direction: column;
+        }
+
+        .daily-item {
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: -ms-flexbox;
+            display: flex;
+            -webkit-box-align: center;
+            -webkit-align-items: center;
+            -ms-flex-align: center;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--divider);
+        }
+
+        .daily-item:last-child { border-bottom: none; }
+
+        .daily-date {
+            -webkit-box-flex: 1;
+            -webkit-flex: 1;
+            -ms-flex: 1;
+            flex: 1;
+            font-size: 20px; /* iPad Mini 优化 */
+            font-weight: 500;
+        }
+
+        .daily-icon {
+            font-size: 32px; /* iPad Mini 优化 */
+            margin: 0 20px;
+        }
+
+        .daily-desc {
+            font-size: 16px; /* iPad Mini 优化 */
+            color: var(--text-secondary);
+            margin: 0 10px;
+        }
+
+        .daily-temps {
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: -ms-flexbox;
+            display: flex;
+            gap: 16px;
+            font-size: 20px; /* iPad Mini 优化 */
+            min-width: 100px;
+            -webkit-box-pack: end;
+            -webkit-justify-content: flex-end;
+            -ms-flex-pack: end;
+            justify-content: flex-end;
+        }
+
+        .temp-min { color: var(--text-secondary); }
+
+        /* 加载与错误状态 */
+        .status-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-gradient);
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: -ms-flexbox;
+            display: flex;
+            -webkit-box-orient: vertical;
+            -webkit-box-direction: normal;
+            -webkit-flex-direction: column;
+            -ms-flex-direction: column;
+            flex-direction: column;
+            -webkit-box-pack: center;
+            -webkit-justify-content: center;
+            -ms-flex-pack: center;
+            justify-content: center;
+            -webkit-box-align: center;
+            -webkit-align-items: center;
+            -ms-flex-align: center;
+            align-items: center;
+            z-index: 100;
+            transition: opacity 0.3s;
+        }
+
+        .status-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .error-msg {
+            color: #ef4444;
+            font-size: 20px; /* iPad Mini 优化 */
+            text-align: center;
+        }
+
+        .retry-btn {
+            margin-top: 16px;
+            padding: 10px 24px;
+            background: var(--text-primary);
+            color: var(--bg-gradient);
+            border: none;
+            border-radius: 8px;
+            font-size: 18px; /* iPad Mini 优化 */
+            cursor: pointer;
         }
     </style>
 </head>
-<body class="bg-default">
+<body>
 
-<div class="container">
-    <div id="loadingMsg" class="status-msg">正在连接气象卫星...</div>
-    <div id="errorMsg" class="status-msg hidden"></div>
+    <div class="status-overlay hidden" id="statusOverlay">
+        <div class="spinner" id="spinner" style="display:none;"></div>
+        <div class="error-msg" id="errorMsg" style="display:none;"></div>
+        <button class="retry-btn" id="retryBtn" style="display:none;" onclick="fetchWeatherData()">重试</button>
+    </div>
 
-    <div id="weatherContent" class="hidden">
-        <div class="current-card">
-            <div class="loc-name" id="locName">定位中...</div>
-            <div class="temp-huge" id="curTemp">--<sup>°</sup></div>
-            <div class="weather-desc" id="curDesc">--</div>
-            <div class="update-time" id="updateTime">--</div>
+    <div class="container">
+        <header>
+            <div class="title">北京天气</div>
+            <div class="update-info" id="updateTime">
+                <div class="spinner" id="updateSpinner" style="display:none;"></div>
+                <span id="updateText">正在获取数据...</span>
+            </div>
+        </header>
+
+        <div class="card">
+            <div class="current-weather">
+                <div class="current-icon" id="currentIcon">--</div>
+                <div class="current-details">
+                    <div class="current-temp" id="currentTemp">--°</div>
+                    <div class="current-desc" id="currentDesc">
+                        <span id="currentDescText">--</span>
+                    </div>
+                    <div class="current-metrics">
+                        <span>💧 湿度: <span id="currentHumidity">--</span>%</span>
+                        <span>🌬️ 风速: <span id="currentWind">--</span> km/h</span>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <div class="section-title">未来 24 小时</div>
-        <div class="hourly-scroll" id="hourlyContainer"></div>
+        <div class="card">
+            <div class="card-title">未来24小时</div>
+            <div class="hourly-scroll" id="hourlyList"></div>
+        </div>
 
-        <div class="section-title">未来 7 天预报</div>
-        <ul class="daily-list" id="dailyContainer"></ul>
+        <div class="card">
+            <div class="card-title">未来7天预报</div>
+            <div class="daily-list" id="dailyList"></div>
+        </div>
     </div>
-</div>
 
-<script>
-// ============================================
-// ⚙️ 配置区：请修改为你所在城市的经纬度
-// ============================================
-var CONFIG = {
-    LAT: 39.9042,      // 纬度 (默认北京)
-    LON: 116.4074,     // 经度 (默认北京)
-    CITY_NAME: '北京',  // 显示的城市名称
-    REFRESH_MS: 600000 // 刷新间隔(毫秒)，默认10分钟
-};
+    <script>
+        // 北京坐标
+        var LAT = 39.9042;
+        var LON = 116.4074;
+        
+        // Open-Meteo API (支持 HTTP/HTTPS，无需 Key)
+        var API_URL = 'https://api.open-meteo.com/v1/forecast?latitude=' + LAT + '&longitude=' + LON + '&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&hourly=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Asia%2FShanghai&forecast_days=8';
 
-// WMO 天气代码映射 [图标, 描述, 背景类名]
-var WMO_MAP = {
-    0: ['☀️', '晴', 'bg-clear'], 1: ['🌤', '大部晴朗', 'bg-clear'], 2: ['⛅', '多云', 'bg-cloudy'], 3: ['☁️', '阴', 'bg-cloudy'],
-    45: ['🌫', '雾', 'bg-cloudy'], 48: ['🌫', '冻雾', 'bg-cloudy'],
-    51: ['🌦', '毛毛雨', 'bg-rainy'], 53: ['🌦', '小雨', 'bg-rainy'], 55: ['🌧', '中雨', 'bg-rainy'],
-    61: ['🌧', '小雨', 'bg-rainy'], 63: ['🌧', '中雨', 'bg-rainy'], 65: ['🌧', '大雨', 'bg-rainy'],
-    71: ['🌨', '小雪', 'bg-snowy'], 73: ['🌨', '中雪', 'bg-snowy'], 75: ['❄️', '大雪', 'bg-snowy'],
-    80: ['🌦', '阵雨', 'bg-rainy'], 81: ['🌧', '中阵雨', 'bg-rainy'], 82: ['⛈', '强阵雨', 'bg-rainy'],
-    95: ['⛈', '雷暴', 'bg-rainy'], 96: ['⛈', '雷暴冰雹', 'bg-rainy'], 99: ['⛈', '强雷暴', 'bg-rainy']
-};
+        // WMO 天气代码映射
+        var weatherMap = {
+            0: { desc: '晴', icon: '☀️' },
+            1: { desc: '大部晴朗', icon: '🌤️' },
+            2: { desc: '多云', icon: '⛅' },
+            3: { desc: '阴天', icon: '☁️' },
+            45: { desc: '雾', icon: '🌫️' },
+            48: { desc: '雾凇', icon: '🌫️' },
+            51: { desc: '小毛毛雨', icon: '🌦️' },
+            53: { desc: '毛毛雨', icon: '🌦️' },
+            55: { desc: '大毛毛雨', icon: '🌧️' },
+            61: { desc: '小雨', icon: '🌦️' },
+            63: { desc: '中雨', icon: '🌧️' },
+            65: { desc: '大雨', icon: '🌧️' },
+            71: { desc: '小雪', icon: '🌨️' },
+            73: { desc: '中雪', icon: '🌨️' },
+            75: { desc: '大雪', icon: '❄️' },
+            80: { desc: '阵雨', icon: '🌦️' },
+            81: { desc: '中阵雨', icon: '🌧️' },
+            82: { desc: '大阵雨', icon: '⛈️' },
+            95: { desc: '雷暴', icon: '⛈️' },
+            96: { desc: '雷暴伴冰雹', icon: '⛈️' },
+            99: { desc: '强雷暴冰雹', icon: '⛈️' }
+        };
 
-function getWeatherInfo(code) { return WMO_MAP[code] || ['❓', '未知', 'bg-default']; }
-function padZero(n) { return n < 10 ? '0' + n : '' + n; }
-
-function formatHour(isoStr) {
-    var d = new Date(isoStr);
-    return padZero(d.getHours()) + ':00';
-}
-
-function formatWeekday(isoStr) {
-    var days = ['周日','周一','周二','周三','周四','周五','周六'];
-    var d = new Date(isoStr);
-    var today = new Date();
-    if (d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth() && d.getDate() === today.getDate()) return '今天';
-    var tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
-    if (d.getFullYear() === tomorrow.getFullYear() && d.getMonth() === tomorrow.getMonth() && d.getDate() === tomorrow.getDate()) return '明天';
-    return days[d.getDay()];
-}
-
-// iOS9 安全的 AJAX 请求
-function fetchJSON(url, callback) {
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', url, true);
-    xhr.timeout = 15000;
-    xhr.onreadystatechange = function() {
-        if (xhr.readyState === 4) {
-            if (xhr.status === 200 || xhr.status === 0) {
-                try { callback(null, JSON.parse(xhr.responseText)); } 
-                catch(e) { callback('数据解析失败', null); }
-            } else { callback('网络请求失败', null); }
+        function getWeatherInfo(code) {
+            var info = weatherMap[code] || { desc: '未知', icon: '❓' };
+            return { desc: info.desc, icon: info.icon };
         }
-    };
-    xhr.ontimeout = function() { callback('请求超时', null); };
-    xhr.onerror = function() { callback('网络错误', null); };
-    xhr.send();
-}
 
-function showError(msg) {
-    document.getElementById('loadingMsg').className = 'status-msg hidden';
-    document.getElementById('weatherContent').className = 'hidden';
-    var el = document.getElementById('errorMsg');
-    el.innerHTML = msg + '<br><span style="font-size:16px;opacity:0.6;">将在下次刷新时重试</span>';
-    el.className = 'status-msg';
-}
+        // 安全解析时间 (修复 iOS 9 NaN:00 问题)
+        function parseTime(timeStr) {
+            // 将 "2023-10-25T14:00" 转换为 "2023/10/25 14:00"
+            var safeStr = timeStr.replace(/-/g, '/').replace('T', ' ');
+            return new Date(safeStr);
+        }
 
-function applyBackground(code, isNight) {
-    var info = getWeatherInfo(code);
-    var bgClass = info[2];
-    // 如果是晴天/多云，且当前是夜间，切换为夜空背景
-    if (isNight && (bgClass === 'bg-clear' || bgClass === 'bg-cloudy')) {
-        bgClass = 'bg-night';
-    }
-    document.body.className = bgClass;
-}
+        function fetchWeatherData() {
+            var updateSpinner = document.getElementById('updateSpinner');
+            var updateText = document.getElementById('updateText');
+            var errorMsg = document.getElementById('errorMsg');
+            var retryBtn = document.getElementById('retryBtn');
 
-function renderWeather(data) {
-    var cur = data.current_weather;
-    var hourly = data.hourly;
-    var daily = data.daily;
-    var info = getWeatherInfo(cur.weathercode);
+            updateSpinner.style.display = 'block';
+            updateText.textContent = '正在获取数据...';
 
-    // 判断是否夜间 (简单判断：晚上19点到早上6点)
-    var now = new Date();
-    var hour = now.getHours();
-    var isNight = (hour >= 19 || hour < 6);
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', API_URL, true);
 
-    // 应用动态背景
-    applyBackground(cur.weathercode, isNight);
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    try {
+                        var data = JSON.parse(xhr.responseText);
 
-    // 当前天气
-    document.getElementById('locName').textContent = CONFIG.CITY_NAME;
-    document.getElementById('curTemp').innerHTML = Math.round(cur.temperature) + '<sup>°</sup>';
-    document.getElementById('curDesc').textContent = info[0] + ' ' + info[1];
-    document.getElementById('updateTime').textContent = '最后更新：' + padZero(now.getHours()) + ':' + padZero(now.getMinutes());
+                        renderCurrentWeather(data.current);
+                        renderHourlyForecast(data.hourly);
+                        renderDailyForecast(data.daily);
 
-    // 小时预报
-    var hContainer = document.getElementById('hourlyContainer');
-    var hHTML = '';
-    var startIdx = 0;
-    for (var i = 0; i < hourly.time.length; i++) {
-        if (new Date(hourly.time[i]) >= now) { startIdx = i; break; }
-    }
-    for (var j = startIdx; j < Math.min(startIdx + 24, hourly.time.length); j++) {
-        var hInfo = getWeatherInfo(hourly.weathercode[j]);
-        // 小时预报里的夜间图标处理 (可选，这里保持原样以简化)
-        hHTML += '<div class="hour-card">' +
-            '<div class="h-time">' + formatHour(hourly.time[j]) + '</div>' +
-            '<div class="h-icon">' + hInfo[0] + '</div>' +
-            '<div class="h-temp">' + Math.round(hourly.temperature_2m[j]) + '°</div>' +
-            '</div>';
-    }
-    hContainer.innerHTML = hHTML;
+                        var now = new Date();
+                        updateText.textContent = '更新于 ' + (now.getHours() < 10 ? '0' : '') + now.getHours() + ':' + (now.getMinutes() < 10 ? '0' : '') + now.getMinutes();
+                        updateSpinner.style.display = 'none';
 
-    // 每日预报
-    var dContainer = document.getElementById('dailyContainer');
-    var dHTML = '';
-    for (var k = 0; k < daily.time.length; k++) {
-        var dInfo = getWeatherInfo(daily.weathercode[k]);
-        dHTML += '<li class="daily-card">' +
-            '<span class="d-day">' + formatWeekday(daily.time[k]) + '</span>' +
-            '<span class="d-icon">' + dInfo[0] + '</span>' +
-            '<span class="d-desc">' + dInfo[1] + '</span>' +
-            '<span class="d-temp-range">' +
-                Math.round(daily.temperature_2m_max[k]) + '°' +
-                '<span class="d-temp-low">' + Math.round(daily.temperature_2m_min[k]) + '°</span>' +
-            '</span></li>';
-    }
-    dContainer.innerHTML = dHTML;
+                        document.getElementById('statusOverlay').className = 'hidden';
+                    } catch (e) {
+                        updateSpinner.style.display = 'none';
+                        updateText.textContent = '数据加载失败';
+                        
+                        var overlay = document.getElementById('statusOverlay');
+                        overlay.className = '';
+                        document.getElementById('spinner').style.display = 'none';
+                        errorMsg.textContent = '⚠️ 数据解析失败';
+                        errorMsg.style.display = 'block';
+                        retryBtn.style.display = 'block';
+                    }
+                } else {
+                    updateSpinner.style.display = 'none';
+                    updateText.textContent = '网络请求失败';
+                    
+                    var overlay = document.getElementById('statusOverlay');
+                    overlay.className = '';
+                    document.getElementById('spinner').style.display = 'none';
+                    errorMsg.textContent = '⚠️ 网络请求失败';
+                    errorMsg.style.display = 'block';
+                    retryBtn.style.display = 'block';
+                }
+            };
 
-    // 切换显示状态
-    document.getElementById('loadingMsg').className = 'status-msg hidden';
-    document.getElementById('errorMsg').className = 'status-msg hidden';
-    document.getElementById('weatherContent').className = '';
-}
+            xhr.onerror = function() {
+                updateSpinner.style.display = 'none';
+                updateText.textContent = '网络连接失败';
+                
+                var overlay = document.getElementById('statusOverlay');
+                overlay.className = '';
+                document.getElementById('spinner').style.display = 'none';
+                errorMsg.textContent = '⚠️ 数据获取失败，请检查网络连接';
+                errorMsg.style.display = 'block';
+                retryBtn.style.display = 'block';
+            };
 
-function loadWeather() {
-    var url = 'https://api.open-meteo.com/v1/forecast?' +
-        'latitude=' + CONFIG.LAT +
-        '&longitude=' + CONFIG.LON +
-        '&current_weather=true' +
-        '&hourly=temperature_2m,weathercode' +
-        '&daily=weathercode,temperature_2m_max,temperature_2m_min' +
-        '&timezone=auto' +
-        '&forecast_days=7';
+            xhr.send();
+        }
 
-    fetchJSON(url, function(err, data) {
-        if (err) { showError(err); return; }
-        renderWeather(data);
-    });
-}
+        function renderCurrentWeather(current) {
+            var info = getWeatherInfo(current.weather_code);
+            
+            document.getElementById('currentIcon').textContent = info.icon;
+            document.getElementById('currentTemp').textContent = Math.round(current.temperature_2m) + '°';
+            document.getElementById('currentDescText').textContent = info.desc;
+            document.getElementById('currentHumidity').textContent = current.relative_humidity_2m;
+            document.getElementById('currentWind').textContent = Math.round(current.wind_speed_10m);
+        }
 
-// 启动与定时刷新
-loadWeather();
-setInterval(loadWeather, CONFIG.REFRESH_MS);
-</script>
+        function renderHourlyForecast(hourly) {
+            var container = document.getElementById('hourlyList');
+            container.innerHTML = '';
+            
+            // 找到当前时间最近的索引
+            var now = new Date();
+            var startIndex = 0;
+            for (var i = 0; i < hourly.time.length; i++) {
+                if (parseTime(hourly.time[i]) >= now) {
+                    startIndex = i;
+                    break;
+                }
+            }
+
+            for (var i = startIndex; i < startIndex + 24 && i < hourly.time.length; i++) {
+                var time = parseTime(hourly.time[i]);
+                var hour = time.getHours();
+                var info = getWeatherInfo(hourly.weather_code[i]);
+
+                var item = document.createElement('div');
+                item.className = 'hour-item';
+                item.innerHTML = 
+                    '<div class="hour-time">' + (i === startIndex ? '现在' : hour + ':00') + '</div>' +
+                    '<div class="hour-icon">' + info.icon + '</div>' +
+                    '<div class="hour-desc">' + info.desc + '</div>' +
+                    '<div class="hour-temp">' + Math.round(hourly.temperature_2m[i]) + '°</div>';
+                container.appendChild(item);
+            }
+        }
+
+        function renderDailyForecast(daily) {
+            var container = document.getElementById('dailyList');
+            container.innerHTML = '';
+            var weekDays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+
+            for (var i = 0; i < 7 && i < daily.time.length; i++) {
+                var date = parseTime(daily.time[i] + 'T00:00');
+                var dayName = i === 0 ? '今天' : weekDays[date.getDay()];
+                var info = getWeatherInfo(daily.weather_code[i]);
+
+                var item = document.createElement('div');
+                item.className = 'daily-item';
+                item.innerHTML = 
+                    '<div class="daily-date">' + dayName + '</div>' +
+                    '<div class="daily-icon">' + info.icon + '</div>' +
+                    '<div class="daily-desc">' + info.desc + '</div>' +
+                    '<div class="daily-temps">' +
+                        '<span class="temp-min">' + Math.round(daily.temperature_2m_min[i]) + '°</span>' +
+                        '<span>' + Math.round(daily.temperature_2m_max[i]) + '°</span>' +
+                    '</div>';
+                container.appendChild(item);
+            }
+        }
+
+        // 初始化
+        setTimeout(fetchWeatherData, 100); // 延迟加载避免初始闪烁
+
+        // 每3分钟自动刷新数据 (180000ms)
+        setInterval(fetchWeatherData, 180000);
+    </script>
 </body>
 </html>
+
+
+
